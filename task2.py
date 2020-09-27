@@ -73,21 +73,32 @@ The qasm-simulator returns the results as strings.
 We parse them as floats and return them in an array.
 """
 def getIntegerCounts(circuit):
-
-    # noise_model = NoiseModel.from_backend(device_backend)
     
-    # Get the basis gates for the noise model
-    # basis_gates = noise_model.basis_gates
-
+    # Example error probabilities
+    p_reset = 0.03
+    p_meas = 0.1
+    p_gate1 = 0.05
+    
+    # QuantumError objects
+    error_reset = pauli_error([('X', p_reset), ('I', 1 - p_reset)])
+    error_meas = pauli_error([('X',p_meas), ('I', 1 - p_meas)])
+    error_gate1 = pauli_error([('X',p_gate1), ('I', 1 - p_gate1)])
+    error_gate2 = error_gate1.tensor(error_gate1)
+    
+    # Add errors to noise model
+    noise_bit_flip = NoiseModel()
+    noise_bit_flip.add_all_qubit_quantum_error(error_reset, "reset")
+    noise_bit_flip.add_all_qubit_quantum_error(error_meas, "measure")
+    noise_bit_flip.add_all_qubit_quantum_error(error_gate1, ["rx", "ry"])
+    noise_bit_flip.add_all_qubit_quantum_error(error_gate2, ["cx"])
+  
     # Map the quantum measurement to the classical bits
     circuit.measure([0,1], [0,1])
-
-
+    
     # Execute the circuit on the qasm simulator
     job = execute(circuit, simulator, 
-                  # noise_model=noise_model,
-                       # coupling_map=coupling_map,
-                       # basis_gates=basis_gates,
+                  # noise_model=noise_bit_flip,
+                       # basis_gates=noise_bit_flip.basis_gates,
                        shots=100)
 
     # Grab results from the job
@@ -224,8 +235,11 @@ print(findMinimumUsingGradientDescent(lambda t0,t1,t2,t3: circuitFunctionToMinim
 """
 Discussion
 
-A higher number of measurements per iteration will probably compensate for the noise in the measurements.
-One might expect that the more measurements per iteration, the faster the gradient descent algorithm will converge.
+Unfortunately, my results are not yet converging to answers, even without
+explicitly adding noise to the simulations. I have tried tweaking the various parameters (delta, gamma),
+but this did not help much. I would expect that a higher number of measurements per iteration would make 
+the gradient descent algorithm converge faster. Also, I would expect that noise in the measurements would be compenstated
+faster when we use a higher humber of measurements per iteration. 
 
 Bonus question
 
