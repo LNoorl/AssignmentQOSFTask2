@@ -9,6 +9,10 @@ from qiskit.visualization import plot_histogram
 from qiskit.circuit import Parameter
 from qiskit.providers.aer.noise import NoiseModel
 from qiskit.test.mock import FakeVigo
+from qiskit.providers.aer.noise import NoiseModel
+from qiskit.providers.aer.noise import QuantumError, ReadoutError
+from qiskit.providers.aer.noise import pauli_error
+from qiskit.providers.aer.noise import depolarizing_error
 
 """
 Assignment task 2 for the QOSF Mentorship Program
@@ -204,7 +208,6 @@ def findMinimumUsingGradientDescent(F,initialParams,gamma = 1):
         vectorA = copy.copy(newVectorA)
         valueAtA = copy.copy(evaluateFAtVector(F, vectorA))
     return vectorA
-
 
 # Starting parameters all zero, 1 measurement
 print(findMinimumUsingGradientDescent(lambda t0,t1,t2,t3: circuitFunctionToMinimize(t0,t1,t2,t3,1),[0.0,0.0,0.0,0.0]))
