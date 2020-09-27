@@ -132,7 +132,8 @@ def averageIntegerCounts(circuit,N):
 """
 Defines the function needed to minimize for this problem. We want to obtain a circuit that has the following
 averageIntegerCounts output: [0,50,50,0], hence we need to minimize 
-[averageIntegerCounts[0], |averageIntegerCounts[1] - 50|, |averageIntegerCounts[2] - 50|, averageIntegerCounts[3]]
+ the norm of 
+ [averageIntegerCounts[0], |averageIntegerCounts[1] - 50|, |averageIntegerCounts[2] - 50|, averageIntegerCounts[3]]
 """
 def circuitFunctionToMinimize(p0,p1,p2,p3,averagingOver=10):
     circuit = QuantumCircuit(2, 2)
@@ -142,7 +143,7 @@ def circuitFunctionToMinimize(p0,p1,p2,p3,averagingOver=10):
     circuit.ry(p3, 1)
     circuit.cx(0,1)
     counts = averageIntegerCounts(circuit, averagingOver)
-    return [counts[0], abs(counts[1]-50.0), abs(counts[2]-50.0), counts[3]]
+    return np.linalg.norm([counts[0], abs(counts[1]-50.0), abs(counts[2]-50.0), counts[3]])
 
 """
 Returns vector with delta added to j-th component vector[j].
@@ -163,9 +164,7 @@ def evaluateFAtVector(F,vectorA):
 """
 Computes the gradient of multivariable function F at vectorA using delta for approximating partial derivatives. 
 """
-def computeGradient(F,vectorA,delta=1):
-    # Number of output coordinates
-    M = len(evaluateFAtVector(F, vectorA))
+def computeGradient(F,vectorA,delta=0.1):
     
     # Number of variables
     N = len(vectorA)
@@ -174,9 +173,8 @@ def computeGradient(F,vectorA,delta=1):
     gradient = np.array([0.0] * N)
     
     for j in range(N):
-        for i in range(M):
-            deltaVectorA = plusDeltaAtJ(vectorA,j,delta)
-            gradient[j] += abs(evaluateFAtVector(F,deltaVectorA)[i]-evaluateFAtVector(F, vectorA)[i])/abs(delta)
+        deltaVectorA = plusDeltaAtJ(vectorA,j,delta)
+        gradient[j] = abs(evaluateFAtVector(F,deltaVectorA)-evaluateFAtVector(F, vectorA))/abs(delta)
     return gradient 
 
 """
@@ -185,7 +183,7 @@ that the resulting sequence F(vectorA) >= F(newVectorA) >= ... is indeed not inc
 """            
 def findMinimumUsingGradientDescent(F,initialParams,gamma = 0.1):
     vectorA = np.array(initialParams)
-    while np.linalg.norm(evaluateFAtVector(F, vectorA)) > 0.1:
+    while evaluateFAtVector(F, vectorA) > 0.1:
         startingGamma = copy.copy(gamma)
         gradientAtA = computeGradient(F, vectorA);
         newVectorA = np.subtract(vectorA, (startingGamma*computeGradient(F, vectorA)))
@@ -193,6 +191,7 @@ def findMinimumUsingGradientDescent(F,initialParams,gamma = 0.1):
             gamma = gamma/2
             newVectorA = np.subtract(vectorA, (gamma*computeGradient(F, vectorA)))
         vectorA = newVectorA
+        print("eval vecA",evaluateFAtVector(F, vectorA))
     return vectorA
 
 
