@@ -131,9 +131,8 @@ def averageIntegerCounts(circuit,N):
 
 """
 Defines the function needed to minimize for this problem. We want to obtain a circuit that has the following
-averageIntegerCounts output: [0,50,50,0], hence we need to minimize 
- the norm of 
- [averageIntegerCounts[0], |averageIntegerCounts[1] - 50|, |averageIntegerCounts[2] - 50|, averageIntegerCounts[3]]
+averageIntegerCounts output: [0,50,50,0], hence we will minimize the sum
+ averageIntegerCounts[0] + |averageIntegerCounts[1] - 50| +|averageIntegerCounts[2] - 50| + averageIntegerCounts[3]
 """
 def circuitFunctionToMinimize(p0,p1,p2,p3,averagingOver=10):
     circuit = QuantumCircuit(2, 2)
@@ -143,7 +142,7 @@ def circuitFunctionToMinimize(p0,p1,p2,p3,averagingOver=10):
     circuit.ry(p3, 1)
     circuit.cx(0,1)
     counts = averageIntegerCounts(circuit, averagingOver)
-    return np.linalg.norm([counts[0], abs(counts[1]-50.0), abs(counts[2]-50.0), counts[3]])
+    return counts[0] + abs(counts[1]-50.0) + abs(counts[2]-50.0) + counts[3]
 
 """
 Returns vector with delta added to j-th component vector[j].
@@ -164,7 +163,7 @@ def evaluateFAtVector(F,vectorA):
 """
 Computes the gradient of multivariable function F at vectorA using delta for approximating partial derivatives. 
 """
-def computeGradient(F,vectorA,delta=0.1):
+def computeGradient(F,vectorA,delta=0.01):
     
     # Number of variables
     N = len(vectorA)
@@ -181,17 +180,18 @@ def computeGradient(F,vectorA,delta=0.1):
 Performs gradient descent algorithm using step size that starts with gamma, and divides gamma by 2 to make sure 
 that the resulting sequence F(vectorA) >= F(newVectorA) >= ... is indeed not increasing.
 """            
-def findMinimumUsingGradientDescent(F,initialParams,gamma = 0.1):
+def findMinimumUsingGradientDescent(F,initialParams,gamma = 1):
     vectorA = np.array(initialParams)
-    while evaluateFAtVector(F, vectorA) > 0.1:
+    valueAtA = copy.copy(evaluateFAtVector(F, vectorA))
+    while valueAtA > 0.1:
         startingGamma = copy.copy(gamma)
-        gradientAtA = computeGradient(F, vectorA);
-        newVectorA = np.subtract(vectorA, (startingGamma*computeGradient(F, vectorA)))
-        while evaluateFAtVector(F, vectorA) > evaluateFAtVector(F, newVectorA):
+        gradientAtA = computeGradient(F, vectorA,0.1);
+        newVectorA = np.subtract(vectorA, (gamma*gradientAtA))
+        while valueAtA <= evaluateFAtVector(F,newVectorA):
             gamma = gamma/2
-            newVectorA = np.subtract(vectorA, (gamma*computeGradient(F, vectorA)))
-        vectorA = newVectorA
-        print("eval vecA",evaluateFAtVector(F, vectorA))
+            newVectorA = np.subtract(vectorA, (gamma*gradientAtA))
+        vectorA = copy.copy(newVectorA)
+        valueAtA = copy.copy(evaluateFAtVector(F, vectorA))
     return vectorA
 
 
@@ -230,8 +230,9 @@ One might expect that the more measurements per iteration, the faster the gradie
 Bonus question
 
 In order to make sure that we produce state  |01⟩  +  |10⟩  and not any other combination of |01> + e(i*phi)|10⟩, 
-we need to impose an extra condition on the parameters. Namely, that the various phases they produce add up to zero
-for each qubit. 
+we need to impose an extra condition on the parameters. Namely, the various phases they produce should add up so that
+the qubits have a relative phase difference of zero. This extra condition can be included in the function that
+we minimize using gradient descent. 
 
 """
 
